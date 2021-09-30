@@ -1,12 +1,16 @@
 from typing import List
 from functools import reduce
 from values import sbox, sbox_inverse
+from pprint import pprint
 
 ################################################## UTILITIES ##################################################
 
 def repr(m: List[int]):
   """ Prints an array out as a string of its contents in hexadecimal """
   return ' '.join(list(map(lambda x: hex(x)[2:].zfill(2), m))).upper() # Eg. 12 = '0xc' -> 'c' -> '0c' -> '0C'
+
+def repr2(m: List[List[int]]):
+  return ' '.join([' '.join(list(map(lambda x: hex(x)[2:].zfill(2), _m))).upper() for _m in m])
 
 def convert_to_ascii(message: str) -> List[int]:
   """ Converts a string into a list of its characters' ASCII values """
@@ -83,9 +87,9 @@ def generate_subkeys(key: List[int]) -> List[List[int]]:
 
   return [[el for arr in W[i*4:i*4+4] for el in arr] for i in range(R)] # Generates the subkeys by grouping words in groups of 4.
   
-def rotate(row: List[int], left=True) -> List[int]:
-  """ Performs a rotation on a list in the direction specified by :param left """
-  return row[1:] + [row[0]] if left else [row[3]] + row[0:3]
+def rotate(row: List[int], right=True) -> List[int]:
+  """ Performs a rotation on a list in the direction specified by :param right """
+  return row[1:] + [row[0]] if right else [row[3]] + row[0:3]
 
 def block_to_matrix(block: List[int]) -> List[List[int]]:
   """ Transforms a 128-bit word into a matrix equivalent """
@@ -103,11 +107,11 @@ def transpose_square_matrix(matrix: List[List[int]]) -> List[List[int]]:
   assert max(list(map(len, matrix))) == len(matrix), 'Cannot transpose this matrix. Matrix is not square.'
   return [[matrix[j][i] for j in range(len(matrix))] for i in range(len(matrix))]
 
-def shift_row(matrix: List[List[int]], left=True):
+def shift_row(matrix: List[List[int]], right=True):
   """ Performs a linear shift of the rows of a matrix. The direction of the shift can be toggled. """
   for i in range(len(matrix)):
-    for _ in range(1, i): # Each row of a matrix (indexed by i=0..4) needs to be rotated i times.
-      matrix[i] = rotate(matrix[i], left=left)
+    for _ in range(1, i+1): # Each row of a matrix (indexed by i=0..4) needs to be rotated i times.
+      matrix[i] = rotate(matrix[i], right=right)
   return matrix
 
 def gf_multiplication(pn1: int, pn2: int) -> int:
@@ -152,10 +156,11 @@ def aes_encrypt(msg: List[int], key: List[int]):
 
     for s in range(1, len(subkeys)):
       # Substitute the values in the SBoxes, transform the result to a matrix and perform the Shift Row operation.
-      blocks[i] = shift_row(block_to_matrix(get_sbox_value(blocks[i])), True)
-      if s != len(subkeys) - 1:                                 # If it is not the last round.
-        blocks[i] = mix_column(gf_matrix, blocks[i])            # Perform the Mix Column Operation
+      blocks[i] = shift_row(block_to_matrix(get_sbox_value(blocks[i])), right=True)
+      if s != len(subkeys) - 1:                            # If it is not the last round.
+        blocks[i] = mix_column(gf_matrix, blocks[i])       # Perform the Mix Column Operation
       blocks[i] = xor(matrix_to_block(blocks[i]), subkeys[s])   # Transform this matrix to a block again and perform an xor with the relevant round key.
+
   return [item for block in blocks for item in block]           # Flatten the resulting array.
 
 def aes_decrypt(msg: List[int], key: List[int]):
@@ -172,7 +177,7 @@ def aes_decrypt(msg: List[int], key: List[int]):
       blocks[i] = block_to_matrix(xor(blocks[i], subkeys[s]))                           # Perform an xor with the relevant round key, and then convert it to a matrix
       if s != len(subkeys) - 1:
         blocks[i] = mix_column(gf_matrix, blocks[i])                                    # Perform the Mix Column Operation
-      blocks[i] = get_inverse_sbox_value(matrix_to_block(shift_row(blocks[i], False)))  # Perform the reverse Shift Row operation, transform the result to a block and substitute with values from the inverse SBoxes
+      blocks[i] = get_inverse_sbox_value(matrix_to_block(shift_row(blocks[i], right=False)))  # Perform the reverse Shift Row operation, transform the result to a block and substitute with values from the inverse SBoxes
     blocks[i] = xor(blocks[i], subkeys[0])                                              # Reverse the round 0 operation
   
   return unpad([item for block in blocks for item in block]) # Flatten the decrypted blocks and unpad the result.
@@ -186,7 +191,7 @@ def test(msg: str, key: str):
   
   print('Original Plaintext:\t', msg)
   print('Key:\t\t\t', key, '\n')
-  print('Original:\t\t', repr(_msg))
+  print('Original:\t\t', repr(_msg), '\n')
   msg_encrypted = aes_encrypt(msg=_msg, key=_key)
   print('Encrypted:\t\t', repr(msg_encrypted), '\n')
   msg_decrypted = aes_decrypt(msg=msg_encrypted, key=_key)
