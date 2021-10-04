@@ -10,7 +10,7 @@ def repr(m: List[int]):
   return ' '.join(list(map(lambda x: hex(x)[2:].zfill(2), m))).upper() # Eg. 12 = '0xc' -> 'c' -> '0c' -> '0C'
 
 def repr2(m: List[List[int]]):
-  return ' '.join([' '.join(list(map(lambda x: hex(x)[2:].zfill(2), _m))).upper() for _m in m])
+  return '\n'.join([' '.join(list(map(lambda x: hex(x)[2:].zfill(2), _m))).upper() for _m in m])
 
 def convert_to_ascii(message: str) -> List[int]:
   """ Converts a string into a list of its characters' ASCII values """
@@ -41,7 +41,7 @@ def get_sbox_value(values: List[int]) -> List[int]:
 def get_inverse_sbox_value(values: List[int]) -> List[int]:
   return [sbox_inverse[i] for i in values]
 
-def xor(*values: List[List[int]]):
+def xor(*values: List[List[int]]) -> List[int]:
   """ Performs a linear XOR among a number of lists of same size. """
   assert min(list(map(len, values))) == max(list(map(len, values))), 'Cannot XOR Lists, different list sizes.'
   return [reduce(lambda x, y: x ^ y, map(lambda z: z[i], values)) for i in range(min(list(map(len, values))))]
@@ -56,11 +56,11 @@ def rcon(i: int) -> List[int]:
 
 def n(key: List[int]) -> int:
   """ Returns the number of 32-bit words in the key """
-  return [4, 6, 8][len(key) // 16 - 1]
+  return [4, 6, 8][len(key) * 2 // 16 - 2]
 
 def rounds(key: List[int]) -> int:
   """ Returns the amount of rounds the AES algorithm will do in order to encrypt or decrypt a message """
-  return [10, 12, 14][len(key) // 16 - 1]
+  return [10, 12, 14][len(key) * 2 // 16 - 2]
 
 def split_key(k: List[int]) -> List[List[int]]:
   """ Breaks up a key into 32-bit words """
