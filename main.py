@@ -80,7 +80,7 @@ def generate_subkeys(key: List[int]) -> List[List[int]]:
       W += [K[i]]
     elif i >= N and i % N == 0:
       W += [xor(W[i - N], get_sbox_value(rotate(W[i - 1])), rcon(i // N))]
-    elif i >= N and i % N == 4:
+    elif i >= N and N > 6 and i % N == 4:
       W += [xor(W[i - N], get_sbox_value(W[i - 1]))]
     else:
       W += [xor(W[i - N], W[i - 1])]
@@ -203,4 +203,4 @@ def test(msg: str, key: str):
 
 if __name__ == '__main__':
   test('Two One Nine Two', 'Thats my Kung Fu')
-  test('Can you smell what the Rock is cooking?', 'You can\'t see me')
+  #test('Can you smell what the Rock is cooking?', 'You can\'t see me')
